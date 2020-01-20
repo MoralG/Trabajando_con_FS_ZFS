@@ -166,7 +166,7 @@ Para la restauración de un disco del Raid, vamos a meter el cuarto disco `sdd` 
 
 ###### Añadimos un nuevo disco reserva
 ~~~
-zpool add -f Raid1 spare sdd
+zpool add -f Raid1 spare /dev/sdd
 ~~~
 
 ###### Comprobamos el estado del nuevo disco con la etiqueta `spares`
@@ -293,7 +293,7 @@ zpool get all Raid1 | grep autoreplace
 
 #### Restauramos el Raid
 
-Ahora vamos a restarurar un Raid en caso de error. Para la efectuar la restauracion del Raid, necesitamos crear un checkpoint, el cual se guardará para poder importarlo en un futuro, por defecto solo se puede realizar un checkpoint por pool.
+Ahora vamos a restarurar un Raid en caso de error. Para efectuar la restauracion del Raid, necesitamos crear un checkpoint, el cual se guardará para poder importarlo en un futuro, por defecto solo se puede realizar un checkpoint por pool.
 
 ###### Realizamos el checkpoint
 ~~~
@@ -369,6 +369,18 @@ zpool checkpoint -d pool
 
 #### Ventajas e inconvenientes respecto al uso de RAID Software con mdadm
 
+1. La primera y la más importante es que el paquete zfs no esta incluido en la paqueteria de Debian y no se incluye de manera nativa en el Kernel de Linux, por el contrario mdadm es GPL que si viene por defecto.
+
+2. 
+
+3. ZFS utiliza pool como espacio de almacenamiento virtual, en los cuales se añaden uno o varios dispositivos.
+
+4. En ZFS tiene un gran número de medidas de protección de datos con sistemas de integridad contra pérdidas y corrupción. Además mdadm cuando los datos son sobreescritos, por lo general se pierden, en cambio, zfs la nuevas información se guarda en bloque diferentes, haciendo que los datos antiguos no se sobreescriban.
+
+5. Con la gran ventaja de la protección de los datos, zfs es ideal para centros de datos y dispositivos NAS y mdadm se queda en el campo de equipos locales.
+
+6. En ZFS, se puede realizar un seguimiento de versiones en los ficheros, creando una snapshot podremos volver a versiones antiguas de los ficheros y ver los cambios.
+
 
 
 --------------------------------------------------------------------
@@ -377,13 +389,14 @@ zpool checkpoint -d pool
 
 #### Comprensión
 
-Co
+Para establecer la compresión en ZFS, tenemos que activar un parametro. Una vez que se establece con la etiqueta `on`, todos los archivos grandes almacenados en este sistema de archivos ZFS se comprimirán.
 
+###### Activamos la compresión
 ~~~
 zfs set compression=lz4 Raid1
 ~~~
 
-###### Comprobamos 
+###### Comprobamos que esta activado 
 ~~~
 zfs get compression Raid1
 	NAME   PROPERTY     VALUE     SOURCE
@@ -395,6 +408,8 @@ zfs get compression Raid1
 zpool get all Raid1 | grep lz4
 	Raid1  feature@lz4_compress           active                         local
 ~~~
+
+
 
 #### Deduplicación
 
