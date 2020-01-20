@@ -27,10 +27,11 @@ Tenemos que compilar el paquete. Para compilarlo tenemos que descargar las depen
 
 ###### Descargamos las dependecias de ZFS
 ~~~
-apt-get install build-essential autoconf automake libtool gawk alien fakeroot ksh
-apt-get install zlib1g-dev uuid-dev libattr1-dev libblkid-dev libselinux-dev libudev-dev
-apt-get install libacl1-dev libaio-dev libdevmapper-dev libssl-dev libelf-dev
-apt-get install linux-headers-$(uname -r)
+apt install build-essential autoconf automake libtool gawk alien fakeroot ksh
+apt install zlib1g-dev uuid-dev libattr1-dev libblkid-dev libselinux-dev libudev-dev
+apt install libacl1-dev libaio-dev libdevmapper-dev libssl-dev libelf-dev
+apt install linux-headers-$(uname -r)
+apt install libpython3-dev libpython3.7 libpython3.7-dev linux-headers-amd64 python3-cffi-backend python3-dev python3-distutils python3-lib2to3 python3-ply python3-pycparser python3-setuptools python3.7-dev
 ~~~
 
 ###### Descargamos el repositorio de ZFS
@@ -107,9 +108,16 @@ lsmod | grep zfs
     spl                   114688  5 zfs,icp,znvpair,zcommon,zavl
 ~~~
 
+###### Reiniciamos el equipo
+~~~
+reboot
+~~~
+
 ### Gestiona los discos adicionales con ZFS
 
+--------------------------------------------------------------------
 * Configurar los discos en RAID, haciendo pruebas de fallo de algún disco y sustitución, restauración del RAID. Comentar ventajas e inconvenientes respecto al uso de RAID software con mdadm.
+--------------------------------------------------------------------
 
 #### Creamos un Raid 1
 
@@ -151,7 +159,6 @@ zpool status
 
     errors: No known data errors
 ~~~
-
 
 #### Restauramos un disco
 
@@ -360,8 +367,52 @@ Si queremos borrar el checkpoint podemos hacerlo con la opción `-d`.
 zpool checkpoint -d pool
 ~~~
 
-* Realiza ejercicios con pruebas de funcionamiento de las principales funcionalidades: compresión, cow, deduplicación, cifrado, etc.
+#### Ventajas e inconvenientes respecto al uso de RAID Software con mdadm
+
+
+
+--------------------------------------------------------------------
+* Realizar ejercicios, con pruebas de funcionamiento, de las principales funcionalidades: compresión, cow, deduplicación, cifrado, etc.
+--------------------------------------------------------------------
+
+#### Comprensión
+
+Co
 
 ~~~
 zfs set compression=lz4 Raid1
+~~~
+
+###### Comprobamos 
+~~~
+zfs get compression Raid1
+	NAME   PROPERTY     VALUE     SOURCE
+	Raid1  compression  on        local
+~~~
+
+###### Además podemos comprobar si esta activado la compresión con `lz4`
+~~~
+zpool get all Raid1 | grep lz4
+	Raid1  feature@lz4_compress           active                         local
+~~~
+
+#### Deduplicación
+
+La deduplicación es
+Por defecto, la deduplicación esta desactivada:
+
+~~~
+zfs get dedup Raid1
+~~~
+
+Con el siguiente comando la activamos:
+
+~~~
+zfs set dedup=on Raid1
+~~~
+
+Comprobamos:
+
+~~~
+zfs get dedup Raid1
 ~~~
