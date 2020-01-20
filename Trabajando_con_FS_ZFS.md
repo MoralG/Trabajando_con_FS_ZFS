@@ -371,7 +371,7 @@ zpool checkpoint -d pool
 
 1. La primera y la más importante es que el paquete zfs no esta incluido en la paqueteria de Debian y no se incluye de manera nativa en el Kernel de Linux, por el contrario mdadm es GPL que si viene por defecto.
 
-2. 
+2. El tamaño máximo en total en ZFS es 256 cuatrillones de Zettabytes y el tamaño máximo de archivo 16 Exabytes..
 
 3. ZFS utiliza pool como espacio de almacenamiento virtual, en los cuales se añaden uno o varios dispositivos.
 
@@ -380,8 +380,6 @@ zpool checkpoint -d pool
 5. Con la gran ventaja de la protección de los datos, zfs es ideal para centros de datos y dispositivos NAS y mdadm se queda en el campo de equipos locales.
 
 6. En ZFS, se puede realizar un seguimiento de versiones en los ficheros, creando una snapshot podremos volver a versiones antiguas de los ficheros y ver los cambios.
-
-
 
 --------------------------------------------------------------------
 * Realizar ejercicios, con pruebas de funcionamiento, de las principales funcionalidades: compresión, cow, deduplicación, cifrado, etc.
@@ -409,25 +407,91 @@ zpool get all Raid1 | grep lz4
 	Raid1  feature@lz4_compress           active                         local
 ~~~
 
+##### Prueba de funcionamiento
+
+Ahora vamos a realizar una prueba de funcionamiento, agrupando con `tar` el directorio `/etc` dentro del punto de montaje del Raid 1 y veremos como el ratio de compresión antes y después.  
+
+~~~
+root@debian:/home/debian# zfs list Raid1
+	NAME    USED  AVAIL     REFER  MOUNTPOINT
+	Raid1   206K   351M       24K  /Raid1
+
+root@debian:/home/debian# zfs get compressratio Raid1
+	NAME   PROPERTY       VALUE  SOURCE
+	Raid1  compressratio  1.00x  -
+
+root@debian:/home/debian# sudo tar -cf /Raid1/PruebaCompression.tar /etc/
+	tar: Eliminando la `/' inicial de los nombres
+
+root@debian:/home/debian# zfs list Raid1
+	NAME    USED  AVAIL     REFER  MOUNTPOINT
+	Raid1   767K   351M      584K  /Raid1
+
+root@debian:/home/debian# zfs get compressratio Raid1
+	NAME   PROPERTY       VALUE  SOURCE
+	Raid1  compressratio  3.56x  -
+~~~
+
 
 
 #### Deduplicación
 
-La deduplicación es
-Por defecto, la deduplicación esta desactivada:
+Ahora tenemos otra forma de guardar los ficheros del disco junto con la compresión, este es la deduplicación, la cual es una técnica de reducir la cantidad de datos al crear una copia de seguridad 
 
-~~~
-zfs get dedup Raid1
-~~~
+Hay tres tipos de deduplicación
+* Archivo
+* Bloque
+* Byte
 
-Con el siguiente comando la activamos:
+La deduplicación de **Archivos** es la más rentable y menos costosa en recursos del sistema pero puede producir mas fallos porque pueden cambiar los Byte, asi que las más segura es la de **Byte**.
 
+Por defecto, la deduplicación esta desactivada, así que tenemos que activar el parametro `dedup`
+
+###### activamos la deduplicación
 ~~~
 zfs set dedup=on Raid1
 ~~~
 
-Comprobamos:
-
+###### Comprobamos que esta activada
 ~~~
 zfs get dedup Raid1
+	NAME   PROPERTY  VALUE          SOURCE
+	Raid1  dedup     on             local
+~~~
+
+##### Prueba de funcionamiento
+
+Ahora vamos a realizar una comprobación de la deduplicación, donde vamos a crear copias del fichero agrupado anteriormente y veremos que tamaña tienen cada uno, luego realizaremos la comprobación del tamaño en uso del Raid y veremos que es menor del que debiera.
+
+~~~
+root@debian:/home/debian# cp /Raid1/PruebaCompression.tar{,.2}
+
+root@debian:/home/debian# cp /Raid1/PruebaCompression.tar{,.3}
+
+root@debian:/home/debian# ls -lh /Raid1/
+	total 1,7M
+	-rw-r--r-- 1 root root 2,1M ene 20 19:26 PruebaCompression.tar
+	-rw-r--r-- 1 root root 2,1M ene 20 19:47 PruebaCompression.tar.2
+	-rw-r--r-- 1 root root 2,1M ene 20 19:47 PruebaCompression.tar.3
+
+root@debian:/home/debian# zfs list Raid1
+	NAME    USED  AVAIL     REFER  MOUNTPOINT
+	Raid1  1,88M   351M     1,67M  /Raid1
+
+root@debian:/home/debian# zfs get compressratio Raid1
+	NAME   PROPERTY       VALUE  SOURCE
+	Raid1  compressratio  3.75x  -
+~~~
+
+> Con tres ficheros de 2.1Mb tendría que ocupar 6.3Mb pero como vemos ocupa 1.88Mb, además el ratio de compresión ha aumentado.
+
+#### Cifrado
+
+Vamos ahora a implementar el cifrado de los datos con ZFS para que se necesite una clave para acceder a los datos.
+
+Se puede activar una política de cifrado con el parametro `encryptation` en `on` pero este tiene que ser activado desde el principio de la creación del pool. El algoritmo de cifrado por defecto es **aes-128-ccm**.
+
+###### Activando cifrado
+~~~
+zfs create -o encryption=on PoolCifrado
 ~~~
