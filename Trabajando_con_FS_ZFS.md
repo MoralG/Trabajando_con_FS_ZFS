@@ -367,6 +367,38 @@ Si queremos borrar el checkpoint podemos hacerlo con la opción `-d`.
 zpool checkpoint -d pool
 ~~~
 
+#### Ahora vamos a crear un RaidZ
+
+RAIDZ es como un RAID5. Dependiendo de si es RAIDZ 1, RAIDZ 2 o RAIDZ 3 tienen 1, 2, o 3 bits de paridad, por lo que se necesita 3, 4 o 5 discos respectivamente.
+
+Nosotros vamos a crear un RAIDZ 1 y utilizaremos 3 discos
+
+###### Creamos el RaidZ
+
+~~~
+zpool create -f Raidz raidz /dev/sdb /dev/sdc /dev/sdd
+~~~
+
+###### Comprobamos el estado
+~~~
+zpool status -v RaidZ
+	  pool: RaidZ
+	 state: ONLINE
+	  scan: none requested
+	config:
+
+		NAME        STATE     READ WRITE CKSUM
+		RaidZ       ONLINE       0     0     0
+		  raidz1-0  ONLINE       0     0     0
+		    sdb     ONLINE       0     0     0
+		    sdc     ONLINE       0     0     0
+		    sdd     ONLINE       0     0     0
+
+	errors: No known data errors
+~~~
+
+Este tipo de RAID actuaria como el RAID5 común con una tolerancia a fallos, dependiendo del RAIDZ escogido, tendremos en nuestro caso 1 bits de paridad repartidos por todos los discos, por lo tanto si un disco de los tres fallará, no habría perdida de datos gracias a la paridad que recalcularia los datos de uno de los otros bloques de datos.
+
 #### Ventajas e inconvenientes respecto al uso de RAID Software con mdadm
 
 1. La primera y la más importante es que el paquete zfs no esta incluido en la paqueteria de Debian y no se incluye de manera nativa en el Kernel de Linux, por el contrario mdadm es GPL que si viene por defecto.
@@ -497,6 +529,7 @@ zpool create -o ashift=12 -O encryption=aes-256-gcm -O keyformat=passphrase -O k
 	Enter passphrase: 
 	Re-enter passphrase: 
 ~~~
+
 
 ###### Vemos que se a activado de manera correcta la encriptación
 ~~~
