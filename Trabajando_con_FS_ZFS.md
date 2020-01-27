@@ -487,11 +487,28 @@ root@debian:/home/debian# zfs get compressratio Raid1
 
 #### Cifrado
 
-Vamos ahora a implementar el cifrado de los datos con ZFS para que se necesite una clave para acceder a los datos.
+Vamos ahora a implementar el cifrado de los datos con ZFS y añadiremos la `passphrase` que es la contraseña de acceso.
 
-Se puede activar una política de cifrado con el parametro `encryptation` en `on` pero este tiene que ser activado desde el principio de la creación del pool. El algoritmo de cifrado por defecto es **aes-128-ccm**.
+Se puede activar una política de cifrado con el parametro `encryptation` en `on` pero este tiene que ser activado desde el principio de la creación del pool. El algoritmo de cifrado por defecto es **aes-128-ccm** pero le vamos a indicar que sea **aes-256-gcm**.
 
 ###### Activando cifrado
 ~~~
-zfs create -o encryption=on PoolCifrado
+zpool create -o ashift=12 -O encryption=aes-256-gcm -O keyformat=passphrase -O keylocation=prompt PruebaCifrado /dev/sdb
+	Enter passphrase: 
+	Re-enter passphrase: 
 ~~~
+
+###### Vemos que se a activado de manera correcta la encriptación
+~~~
+zfs get encryption PruebaCifrado
+	NAME           PROPERTY    VALUE        SOURCE
+	PruebaCifrado  encryption  aes-256-gcm  -
+
+zfs list -o name,used,avail,refer,encryptionroot,mountpoint
+	NAME            USED  AVAIL     REFER  ENCROOT        MOUNTPOINT
+	PruebaCifrado   504K   351M      192K  PruebaCifrado  /mnt
+~~~
+
+#### Copy on Write (COW)
+
+Copy on write es una técnica de almacenamiento de datos en la cual se realiza un copia del bloque de datos que se va a modificar en vez de modificar el bloque directamente. Luego de realizar la copia, se actualiza el puntero para apuntar a la nueva ruta. En resumen, crea instantaneas de las modificaciones de los datos para realizar un rescate en caso de fallo de los datos originales.
